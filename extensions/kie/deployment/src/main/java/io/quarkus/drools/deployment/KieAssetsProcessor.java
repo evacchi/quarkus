@@ -54,8 +54,8 @@ public class KieAssetsProcessor {
         return new FeatureBuildItem("kie");
     }
 
-    @BuildStep
-    @Record(STATIC_INIT)
+    //    @BuildStep
+    //    @Record(STATIC_INIT)
     public void generateModel(ArchiveRootBuildItem root,
             BuildProducer<GeneratedBeanBuildItem> generatedBeans,
             BuildProducer<GeneratedClassBuildItem> generatedClasses,
@@ -75,7 +75,8 @@ public class KieAssetsProcessor {
 
         for (GeneratedFile entry : generatedFiles) {
             String className = toClassName(entry.relativePath());
-            if (entry.getType().equals(GeneratedFile.Type.REST)) {
+            //            if (entry.getType().equals(GeneratedFile.Type.REST)) {
+            if (className.endsWith("Resource")) {
                 jaxRsResources.produce(new JaxRsResourceBuildItem(className));
             }
         }
