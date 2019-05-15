@@ -109,6 +109,9 @@
 
         <!-- Database migrations -->
         <module>flyway</module>
+
+        <!-- kie (drools and jbpm) -->
+        <module>kie</module>
     </modules>
 
 </project>
