@@ -1,35 +1,25 @@
 package io.quarkus.drools.deployment;
 
+import static io.quarkus.drools.deployment.KieFiles.pathOf;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.kie.submarine.codegen.ApplicationGenerator;
 import org.kie.submarine.codegen.GeneratedFile;
-import org.kie.submarine.codegen.process.ProcessCodegen;
-import org.kie.submarine.codegen.rules.RuleCodegen;
+import org.kie.submarine.codegen.Generator;
 
+import io.quarkus.dev.CompilationProvider;
 import io.quarkus.dev.JavaCompilationProvider;
 
-public class KieCompilationProvider extends JavaCompilationProvider {
+public abstract class KieCompilationProvider implements CompilationProvider {
 
-    private static final Set<String> handledExtensions = new HashSet<>();
-
-    static {
-        handledExtensions.add(".bpmn");
-        handledExtensions.add(".bpmn2");
-        handledExtensions.add(".drl");
-    }
-
-    @Override
-    public Set<String> handledExtensions() {
-        return handledExtensions;
-    }
+    private static final JavaCompilationProvider javac = new JavaCompilationProvider();
 
     @Override
     public final void compile(Set<File> filesToCompile, Context context) {
@@ -40,17 +30,10 @@ public class KieCompilationProvider extends JavaCompilationProvider {
             ApplicationGenerator appGen = new ApplicationGenerator(appPackageName, outputDirectory)
                     .withDependencyInjection(true);
 
-            ProcessCodegen processCodegen = appGen.withGenerator(
-                    ProcessCodegen.ofFiles(new ArrayList<>(filesToCompile)));
-            RuleCodegen ruleCodegen = appGen.withGenerator(
-                    RuleCodegen.ofFiles(
-                            Paths.get(context.getOutputDirectory().toPath().getParent().getParent().toString(),
-                                    "src/main/resources"),
-                            filesToCompile));
+            Generator generator = appGen.withGenerator(
+                    generatorFor(filesToCompile, context));
 
-            HashSet<GeneratedFile> generatedFiles = new HashSet<>();
-            generatedFiles.addAll(processCodegen.generate());
-            generatedFiles.addAll(ruleCodegen.generate());
+            Collection<GeneratedFile> generatedFiles = generator.generate();
 
             HashSet<File> generatedSourceFiles = new HashSet<>();
             for (GeneratedFile file : generatedFiles) {
@@ -58,15 +41,11 @@ public class KieCompilationProvider extends JavaCompilationProvider {
                 Files.write(path, file.contents());
                 generatedSourceFiles.add(path.toFile());
             }
-            super.compile(generatedSourceFiles, context);
+            javac.compile(generatedSourceFiles, context);
         } catch (IOException e) {
             throw new KieCompilerException(e);
         }
     }
 
-    private Path pathOf(String path, String relativePath) {
-        Path p = Paths.get(path, relativePath);
-        p.getParent().toFile().mkdirs();
-        return p;
-    }
+    protected abstract Generator generatorFor(Set<File> filesToCompile, Context context) throws IOException;
 }
