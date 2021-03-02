@@ -173,6 +173,7 @@
         <module>grpc-health</module>
         <module>google-cloud-functions-http</module>
         <module>google-cloud-functions</module>
+        <module>repro</module>
     </modules>
 
     <build>
